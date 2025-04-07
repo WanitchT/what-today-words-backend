@@ -1,23 +1,23 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./db.sqlite');
+const Database = require('better-sqlite3');
+const db = new Database('./db.sqlite');
 
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS baby (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT
-    )
-  `);
+// Create baby table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS baby (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
+  )
+`).run();
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS words (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      word TEXT,
-      date TEXT,
-      baby_id INTEGER,
-      FOREIGN KEY (baby_id) REFERENCES baby(id)
-    )
-  `);
-});
+// Create words table
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS words (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    word TEXT,
+    date TEXT,
+    baby_id INTEGER,
+    FOREIGN KEY (baby_id) REFERENCES baby(id)
+  )
+`).run();
 
 module.exports = db;

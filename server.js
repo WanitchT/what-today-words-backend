@@ -64,12 +64,11 @@ const swaggerOptions = {
  *                   example: 1
  */
 app.post('/api/baby', (req, res) => {
-  const { name } = req.body;
-  db.run(`INSERT INTO baby (name) VALUES (?)`, [name], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
+    const { name } = req.body;
+    const stmt = db.prepare('INSERT INTO baby (name) VALUES (?)');
+    const result = stmt.run(name);
+    res.json({ id: result.lastInsertRowid });
   });
-});
 
 // Add word
 /**
@@ -113,12 +112,12 @@ app.post('/api/baby', (req, res) => {
  *                   example: 1
  */
 app.post('/api/words', (req, res) => {
-  const { word, date, babyId } = req.body;
-  db.run(`INSERT INTO words (word, date, baby_id) VALUES (?, ?, ?)`, [word, date, babyId], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
+    const { word, date, babyId } = req.body;
+    const stmt = db.prepare('INSERT INTO words (word, date, baby_id) VALUES (?, ?, ?)');
+    const result = stmt.run(word, date, babyId);
+    res.json({ id: result.lastInsertRowid });
   });
-});
+  
 
 // Get words (with ID)
 /**
@@ -157,10 +156,9 @@ app.post('/api/words', (req, res) => {
  *                     example: 2025-04-07
  */
 app.get('/api/words/:babyId', (req, res) => {
-    db.all(`SELECT id, word, date FROM words WHERE baby_id = ?`, [req.params.babyId], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
+    const stmt = db.prepare('SELECT id, word, date FROM words WHERE baby_id = ?');
+    const words = stmt.all(req.params.babyId);
+    res.json(words);
   });
 
 // Delete a word by ID
@@ -201,16 +199,12 @@ app.get('/api/words/:babyId', (req, res) => {
  *                   example: Word not found
  */
 app.delete('/api/words/:id', (req, res) => {
-    const wordId = req.params.id;
-    db.run(`DELETE FROM words WHERE id = ?`, [wordId], function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-  
-      if (this.changes === 0) {
-        return res.status(404).json({ message: "Word not found" });
-      }
-  
-      res.json({ message: "Word deleted successfully" });
-    });
+    const stmt = db.prepare('DELETE FROM words WHERE id = ?');
+    const result = stmt.run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ message: 'Word not found' });
+    }
+    res.json({ message: 'Word deleted successfully' });
   });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
