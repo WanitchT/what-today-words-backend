@@ -208,14 +208,57 @@ app.delete('/api/words/:id', (req, res) => {
   });
 
 
-// Get baby by ID
+// Get a single baby by ID
 app.get('/api/baby/:id', (req, res) => {
-  const id = req.params.id;
-  db.get(`SELECT * FROM baby WHERE id = ?`, [id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(404).json({ message: 'Baby not found' });
-    res.json(row);
-  });
+  try {
+    const stmt = db.prepare('SELECT * FROM baby WHERE id = ?');
+    const baby = stmt.get(req.params.id);
+
+    if (!baby) return res.status(404).json({ message: 'Baby not found' });
+    res.json(baby);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all babies
+// Get all babies (better-sqlite3)
+app.get('/api/babies', (req, res) => {
+  try {
+    const stmt = db.prepare(`SELECT * FROM baby`);
+    const babies = stmt.all();
+    res.json(babies);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// app.get('/api/baby/:id', (req, res) => {
+//   try {
+//     const stmt = db.prepare(`SELECT * FROM baby WHERE id = ?`);
+//     const baby = stmt.get(req.params.id);
+
+//     if (!baby) return res.status(404).json({ message: 'Baby not found' });
+//     res.json(baby);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// Delete a baby by ID
+app.delete('/api/baby/:id', (req, res) => {
+  try {
+    const stmt = db.prepare('DELETE FROM baby WHERE id = ?');
+    const result = stmt.run(req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ message: 'Baby not found' });
+    }
+
+    res.json({ message: 'Baby deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

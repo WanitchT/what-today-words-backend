@@ -1,5 +1,7 @@
 const Database = require('better-sqlite3');
 const db = new Database('./db.sqlite');
+db.pragma('foreign_keys = ON');
+
 
 // Create baby table
 db.prepare(`
@@ -16,7 +18,7 @@ db.prepare(`
     word TEXT,
     date TEXT,
     baby_id INTEGER,
-    FOREIGN KEY (baby_id) REFERENCES baby(id)
+    FOREIGN KEY (baby_id) REFERENCES baby(id) ON DELETE CASCADE
   )
 `).run();
 
