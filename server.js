@@ -207,4 +207,15 @@ app.delete('/api/words/:id', (req, res) => {
     res.json({ message: 'Word deleted successfully' });
   });
 
+
+// Get baby by ID
+app.get('/api/baby/:id', (req, res) => {
+  const id = req.params.id;
+  db.get(`SELECT * FROM baby WHERE id = ?`, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ message: 'Baby not found' });
+    res.json(row);
+  });
+});
+
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
