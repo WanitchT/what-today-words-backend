@@ -233,17 +233,27 @@ app.get('/api/babies', (req, res) => {
   }
 });
 
-// app.get('/api/baby/:id', (req, res) => {
-//   try {
-//     const stmt = db.prepare(`SELECT * FROM baby WHERE id = ?`);
-//     const baby = stmt.get(req.params.id);
+app.put('/api/baby/:id', (req, res) => {
+  const { name } = req.body;
+  const babyId = req.params.id;
 
-//     if (!baby) return res.status(404).json({ message: 'Baby not found' });
-//     res.json(baby);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
+  if (!name) {
+    return res.status(400).json({ message: 'Name is required' });
+  }
+
+  try {
+    const stmt = db.prepare('UPDATE baby SET name = ? WHERE id = ?');
+    const result = stmt.run(name, babyId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ message: 'Baby not found' });
+    }
+
+    res.json({ message: 'Baby updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Delete a baby by ID
 app.delete('/api/baby/:id', (req, res) => {
