@@ -63,12 +63,14 @@ const swaggerOptions = {
  *                   type: integer
  *                   example: 1
  */
-app.post('/api/baby', (req, res) => {
-    const { name } = req.body;
-    const stmt = db.prepare('INSERT INTO baby (name) VALUES (?)');
-    const result = stmt.run(name);
-    res.json({ id: result.lastInsertRowid });
-  });
+app.post('/api/words', (req, res) => {
+  const { word, date, babyId, category } = req.body;
+
+  const stmt = db.prepare('INSERT INTO words (word, date, baby_id, category) VALUES (?, ?, ?, ?)');
+  const result = stmt.run(word, date, babyId, category || null);
+
+  res.json({ id: result.lastInsertRowid });
+});
 
 // Add word
 /**
@@ -156,10 +158,10 @@ app.post('/api/words', (req, res) => {
  *                     example: 2025-04-07
  */
 app.get('/api/words/:babyId', (req, res) => {
-    const stmt = db.prepare('SELECT id, word, date FROM words WHERE baby_id = ?');
-    const words = stmt.all(req.params.babyId);
-    res.json(words);
-  });
+  const stmt = db.prepare('SELECT id, word, date, category FROM words WHERE baby_id = ?');
+  const words = stmt.all(req.params.babyId);
+  res.json(words);
+});
 
 // Delete a word by ID
 /**
@@ -269,6 +271,18 @@ app.delete('/api/baby/:id', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.patch('/api/words/:id', (req, res) => {
+  const { category } = req.body;
+  const stmt = db.prepare('UPDATE words SET category = ? WHERE id = ?');
+  const result = stmt.run(category, req.params.id);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ message: 'Word not found' });
+  }
+
+  res.json({ message: 'Category updated' });
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
