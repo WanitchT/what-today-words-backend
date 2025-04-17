@@ -130,73 +130,31 @@ app.get("/api/words/:babyId", async (req, res) => {
   res.json(data);
 });
 
-app.delete('/api/words/:id', async (req, res) => {
-  const wordId = req.params.id;
-  const userId = req.query.userId;
+app.delete("/api/words/:id", async (req, res) => {
+  const { userId } = req.query;
 
-  try {
-    const { data: word, error: fetchError } = await supabase
-      .from('words')
-      .select('user_id')
-      .eq('id', wordId)
-      .single();
+  const { data: word } = await supabase
+    .from("words")
+    .select("user_id")
+    .eq("id", req.params.id)
+    .single();
 
-    if (fetchError || !word) {
-      return res.status(404).json({ message: 'Word not found' });
-    }
-
-    if (word.user_id !== userId) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    const { error: deleteError } = await supabase
-      .from('words')
-      .delete()
-      .eq('id', wordId);
-
-    if (deleteError) {
-      return res.status(500).json({ message: 'Failed to delete word' });
-    }
-
-    res.json({ message: 'Word deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!word || word.user_id !== userId) {
+    return res.status(403).json({ message: "Unauthorized" });
   }
+
+  await supabase.from("words").delete().eq("id", req.params.id);
+  res.json({ message: "Word deleted" });
 });
 
-app.patch('/api/words/:id', async (req, res) => {
-  const wordId = req.params.id;
+app.patch("/api/words/:id", async (req, res) => {
   const { category } = req.body;
-  const userId = req.query.userId;
-
-  try {
-    const { data: word, error: fetchError } = await supabase
-      .from('words')
-      .select('user_id')
-      .eq('id', wordId)
-      .single();
-
-    if (fetchError || !word) {
-      return res.status(404).json({ message: 'Word not found' });
-    }
-
-    if (word.user_id !== userId) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    const { error: updateError } = await supabase
-      .from('words')
-      .update({ category })
-      .eq('id', wordId);
-
-    if (updateError) {
-      return res.status(500).json({ message: 'Failed to update word' });
-    }
-
-    res.json({ message: 'Category updated' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const { error } = await supabase
+    .from("words")
+    .update({ category })
+    .eq("id", req.params.id);
+  if (error) return res.status(404).json({ message: "Word not found" });
+  res.json({ message: "Category updated" });
 });
 
 app.listen(PORT, () =>
