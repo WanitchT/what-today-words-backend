@@ -94,16 +94,30 @@ app.delete("/api/baby/:id", async (req, res) => {
   res.json({ message: "Baby deleted successfully" });
 });
 
-app.post("/api/words", async (req, res) => {
+app.post('/api/words', async (req, res) => {
   const { word, date, babyId, category, userId } = req.body;
 
-  const { data, error } = await supabase
-    .from("words")
-    .insert({ word, date, baby_id: babyId, category, user_id: userId })
-    .select()
-    .single();
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ id: data.id });
+  if (!word || !date || !babyId || !userId) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('words')
+      .insert([
+        { word, date, baby_id: babyId, category, user_id: userId }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ message: 'Failed to add word', error: error.message });
+    }
+
+    res.json({ id: data.id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 app.get("/api/words/:babyId", async (req, res) => {
