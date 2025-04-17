@@ -44,7 +44,12 @@ app.post('/api/baby', async (req, res) => {
 });
 
 app.get('/api/babies', async (req, res) => {
-  const { data, error } = await supabase.from('baby').select('*');
+  const userId = req.query.userId;
+  const { data, error } = await supabase
+    .from('baby')
+    .select('*')
+    .eq('user_id', userId);
+
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
