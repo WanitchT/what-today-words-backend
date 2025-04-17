@@ -72,17 +72,20 @@ app.get("/api/baby/:id", async (req, res) => {
 });
 
 app.put("/api/baby/:id", async (req, res) => {
-  const { name } = req.body;
+  const { name, photoUrl } = req.body;
   if (!name) return res.status(400).json({ message: "Name is required" });
 
   const { data, error } = await supabase
     .from("baby")
-    .update({ name })
-    .eq("id", req.params.id);
-  if (error || data.length === 0)
-    return res.status(404).json({ message: "Baby not found" });
+    .update({ name, photo_url: photoUrl || null })
+    .eq("id", req.params.id)
+    .select();
 
-  res.json({ message: "Baby updated successfully" });
+  if (error || !data || data.length === 0) {
+    return res.status(404).json({ message: "Baby not found or update failed" });
+  }
+
+  res.json({ message: "Baby updated successfully", baby: data[0] });
 });
 
 app.delete("/api/baby/:id", async (req, res) => {
