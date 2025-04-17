@@ -31,8 +31,14 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.post('/api/baby', async (req, res) => {
-  const { name } = req.body;
-  const { data, error } = await supabase.from('baby').insert({ name }).select().single();
+  const { name, userId } = req.body;
+
+  const { data, error } = await supabase
+    .from('baby')
+    .insert({ name, user_id: userId })
+    .select()
+    .single();
+
   if (error) return res.status(500).json({ error: error.message });
   res.json({ id: data.id });
 });
@@ -44,8 +50,18 @@ app.get('/api/babies', async (req, res) => {
 });
 
 app.get('/api/baby/:id', async (req, res) => {
-  const { data, error } = await supabase.from('baby').select('*').eq('id', req.params.id).single();
-  if (error) return res.status(404).json({ message: 'Baby not found' });
+  const babyId = req.params.id;
+  const userId = req.query.userId;
+
+  const { data, error } = await supabase
+    .from('baby')
+    .select('*')
+    .eq('id', babyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !data) return res.status(404).json({ message: 'Baby not found or unauthorized' });
+
   res.json(data);
 });
 
@@ -77,11 +93,25 @@ app.post('/api/words', async (req, res) => {
 });
 
 app.get('/api/words/:babyId', async (req, res) => {
+  const babyId = req.params.babyId;
+  const userId = req.query.userId;
+
+  const { data: babyCheck } = await supabase
+    .from('baby')
+    .select('id')
+    .eq('id', babyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!babyCheck) return res.status(403).json({ message: 'Unauthorized access' });
+
   const { data, error } = await supabase
     .from('words')
     .select('id, word, date, category')
-    .eq('baby_id', req.params.babyId);
+    .eq('baby_id', babyId);
+
   if (error) return res.status(500).json({ error: error.message });
+
   res.json(data);
 });
 
