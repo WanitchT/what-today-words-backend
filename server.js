@@ -130,21 +130,38 @@ app.get("/api/words/:babyId", async (req, res) => {
   res.json(data);
 });
 
-app.delete("/api/words/:id", async (req, res) => {
-  const { userId } = req.query;
+app.delete('/api/words/:id', async (req, res) => {
+  const wordId = req.params.id;
+  const userId = req.query.userId;
 
-  const { data: word } = await supabase
-    .from("words")
-    .select("user_id")
-    .eq("id", req.params.id)
-    .single();
+  try {
+    const { data: word, error: fetchError } = await supabase
+      .from('words')
+      .select('user_id')
+      .eq('id', wordId)
+      .single();
 
-  if (!word || word.user_id !== userId) {
-    return res.status(403).json({ message: "Unauthorized" });
+    if (fetchError || !word) {
+      return res.status(404).json({ message: 'Word not found' });
+    }
+
+    if (word.user_id !== userId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const { error: deleteError } = await supabase
+      .from('words')
+      .delete()
+      .eq('id', wordId);
+
+    if (deleteError) {
+      return res.status(500).json({ message: 'Failed to delete word' });
+    }
+
+    res.json({ message: 'Word deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  await supabase.from("words").delete().eq("id", req.params.id);
-  res.json({ message: "Word deleted" });
 });
 
 app.patch("/api/words/:id", async (req, res) => {
