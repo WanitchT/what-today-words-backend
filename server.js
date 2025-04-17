@@ -31,11 +31,11 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.post("/api/baby", async (req, res) => {
-  const { name, userId } = req.body;
+  const { name, userId, photoUrl } = req.body;
 
   const { data, error } = await supabase
     .from("baby")
-    .insert({ name, user_id: userId })
+    .insert({ name, user_id: userId, photo_url: photoUrl || null })
     .select()
     .single();
 
