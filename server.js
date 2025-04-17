@@ -164,14 +164,39 @@ app.delete('/api/words/:id', async (req, res) => {
   }
 });
 
-app.patch("/api/words/:id", async (req, res) => {
+app.patch('/api/words/:id', async (req, res) => {
+  const wordId = req.params.id;
   const { category } = req.body;
-  const { error } = await supabase
-    .from("words")
-    .update({ category })
-    .eq("id", req.params.id);
-  if (error) return res.status(404).json({ message: "Word not found" });
-  res.json({ message: "Category updated" });
+  const userId = req.query.userId;
+
+  try {
+    const { data: word, error: fetchError } = await supabase
+      .from('words')
+      .select('user_id')
+      .eq('id', wordId)
+      .single();
+
+    if (fetchError || !word) {
+      return res.status(404).json({ message: 'Word not found' });
+    }
+
+    if (word.user_id !== userId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const { error: updateError } = await supabase
+      .from('words')
+      .update({ category })
+      .eq('id', wordId);
+
+    if (updateError) {
+      return res.status(500).json({ message: 'Failed to update word' });
+    }
+
+    res.json({ message: 'Category updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () =>
