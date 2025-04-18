@@ -216,6 +216,31 @@ app.patch('/api/words/:id', async (req, res) => {
   }
 });
 
+app.get("/api/words/stats", async (req, res) => {
+  const { babyId, userId } = req.query;
+
+  if (!babyId) {
+    return res.status(400).json({ message: "Missing babyId" });
+  }
+
+  const { data, error } = await supabase
+    .from("words")
+    .select("date")
+    .eq("baby_id", babyId)
+    .eq("user_id", userId);
+
+  if (error) return res.status(500).json({ message: "Failed to fetch data", error });
+
+  // Count by date
+  const counts = data.reduce((acc, { date }) => {
+    acc[date] = (acc[date] || 0) + 1;
+    return acc;
+  }, {});
+
+  const result = Object.entries(counts).map(([date, count]) => ({ date, count }));
+  res.json(result);
+});
+
 app.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
 );
