@@ -219,20 +219,31 @@ app.patch('/api/words/:id', async (req, res) => {
 app.get("/api/words/stats", async (req, res) => {
   const { babyId, userId } = req.query;
 
-  if (!babyId) {
-    return res.status(400).json({ message: "Missing babyId" });
+  if (!babyId || !userId) {
+    return res.status(400).json({ message: "Missing babyId or userId" });
   }
 
-  const { data, error } = await supabase
+  // Confirm baby belongs to the user
+  const { data: baby, error: babyError } = await supabase
+    .from("baby")
+    .select("*")
+    .eq("id", babyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (babyError || !baby) {
+    return res.status(401).json({ message: "Unauthorized access" });
+  }
+
+  // Fetch word stats
+  const { data: words, error: wordError } = await supabase
     .from("words")
     .select("date")
-    .eq("baby_id", babyId)
-    .eq("user_id", userId);
+    .eq("baby_id", babyId);
 
-  if (error) return res.status(500).json({ message: "Failed to fetch data", error });
+  if (wordError) return res.status(500).json({ message: "Failed to fetch words", error: wordError });
 
-  // Count by date
-  const counts = data.reduce((acc, { date }) => {
+  const counts = words.reduce((acc, { date }) => {
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {});
