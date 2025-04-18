@@ -216,14 +216,13 @@ app.patch('/api/words/:id', async (req, res) => {
   }
 });
 
-app.get("/api/words/stats", async (req, res) => {
+app.get("/api/stats", async (req, res) => {
   const { babyId, userId } = req.query;
 
   if (!babyId || !userId) {
     return res.status(400).json({ message: "Missing babyId or userId" });
   }
 
-  // Confirm baby belongs to the user
   const { data: baby, error: babyError } = await supabase
     .from("baby")
     .select("*")
@@ -235,7 +234,6 @@ app.get("/api/words/stats", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized access" });
   }
 
-  // Fetch word stats
   const { data: words, error: wordError } = await supabase
     .from("words")
     .select("date")
@@ -253,5 +251,5 @@ app.get("/api/words/stats", async (req, res) => {
 });
 
 app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
+  console.log(`Server running on : http://localhost:${PORT}`)
 );
