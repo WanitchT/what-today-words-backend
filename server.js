@@ -217,7 +217,7 @@ app.patch('/api/words/:id', async (req, res) => {
 });
 
 app.get("/api/stats", async (req, res) => {
-  const { babyId, userId } = req.query;
+  const { babyId, userId, start, end } = req.query;
 
   if (!babyId || !userId) {
     return res.status(400).json({ message: "Missing babyId or userId" });
@@ -234,13 +234,33 @@ app.get("/api/stats", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized access" });
   }
 
-  const { data: words, error: wordError } = await supabase
+  // 🔍 Explicit filtering with logging
+  let query = supabase
     .from("words")
     .select("date")
     .eq("baby_id", babyId);
 
-  if (wordError) return res.status(500).json({ message: "Failed to fetch words", error: wordError });
+  if (start) {
+    console.log("Applying start date filter:", start);
+    query = query.gte("date", start);
+  }
 
+  if (end) {
+    console.log("Applying end date filter:", end);
+    query = query.lte("date", end);
+  }
+
+  if (req.query.category) {
+    query = query.eq("category", req.query.category);
+  }
+
+  const { data: words, error: wordError } = await query;
+
+  if (wordError) {
+    return res.status(500).json({ message: "Failed to fetch words", error: wordError });
+  }
+
+  // ✅ Make sure only the filtered results are used
   const counts = words.reduce((acc, { date }) => {
     acc[date] = (acc[date] || 0) + 1;
     return acc;
@@ -248,6 +268,99 @@ app.get("/api/stats", async (req, res) => {
 
   const result = Object.entries(counts).map(([date, count]) => ({ date, count }));
   res.json(result);
+});
+
+app.get("/api/stats/summary", async (req, res) => {
+  const { babyId, userId } = req.query;
+
+  if (!babyId || !userId) {
+    return res.status(400).json({ message: "Missing babyId or userId" });
+  }
+
+  // Check baby ownership
+  const { data: baby, error: babyError } = await supabase
+    .from("baby")
+    .select("*")
+    .eq("id", babyId)
+    .eq("user_id", userId)
+    .single();
+
+  if (babyError || !baby) {
+    return res.status(401).json({ message: "Unauthorized access" });
+  }
+
+  // Prepare date strings
+  const today = new Date().toISOString().split("T")[0];
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  const now = new Date();
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay()); // Sunday
+  const thisWeekStartStr = thisWeekStart.toISOString().split("T")[0];
+
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const lastWeekStartStr = lastWeekStart.toISOString().split("T")[0];
+
+  const lastWeekEnd = new Date(thisWeekStart);
+  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+  const lastWeekEndStr = lastWeekEnd.toISOString().split("T")[0];
+
+  // Get words
+  const { data: words, error } = await supabase
+    .from("words")
+    .select("date, category")
+    .eq("baby_id", babyId);
+
+  if (error) {
+    return res.status(500).json({ message: "Failed to fetch stats", error });
+  }
+
+  // Compute stats
+  let total = 0;
+  let todayCount = 0;
+  let yesterdayCount = 0;
+  let thisWeekCount = 0;
+  let lastWeekCount = 0;
+
+  const categoryCounts = {};
+
+  words.forEach(({ date, category }) => {
+    total++;
+
+    if (date === today) todayCount++;
+    if (date === yesterdayStr) yesterdayCount++;
+
+    if (date >= thisWeekStartStr) thisWeekCount++;
+    if (date >= lastWeekStartStr && date <= lastWeekEndStr) lastWeekCount++;
+
+    if (category) {
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    }
+  });
+
+  const sortedCategories = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([category, count]) => ({ category, count }));
+
+  const topCategory = sortedCategories[0]
+    ? `${sortedCategories[0].category} (${sortedCategories[0].count})`
+    : "-";
+
+  const topCategories = sortedCategories.slice(0, 3);
+
+  res.json({
+    today: todayCount,
+    yesterday: yesterdayCount,
+    thisWeek: thisWeekCount,
+    lastWeek: lastWeekCount,
+    total,
+    topCategory,
+    topCategories,
+  });
 });
 
 app.listen(PORT, () =>
