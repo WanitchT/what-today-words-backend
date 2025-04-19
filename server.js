@@ -140,7 +140,8 @@ app.get("/api/words/:babyId", async (req, res) => {
   const { data, error } = await supabase
     .from("words")
     .select("id, word, date, category")
-    .eq("baby_id", babyId);
+    .eq("baby_id", babyId)
+    .order("date", { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
 
