@@ -126,6 +126,7 @@ app.post('/api/words', async (req, res) => {
 app.get("/api/words/:babyId", async (req, res) => {
   const babyId = req.params.babyId;
   const userId = req.query.userId;
+  const sortAsc = req.query.sortAsc === "true";
 
   const { data: babyCheck } = await supabase
     .from("baby")
@@ -141,7 +142,7 @@ app.get("/api/words/:babyId", async (req, res) => {
     .from("words")
     .select("id, word, date, category")
     .eq("baby_id", babyId)
-    .order("date", { ascending: false });
+    .order("date", { ascending: sortAsc });
 
   if (error) return res.status(500).json({ error: error.message });
 
