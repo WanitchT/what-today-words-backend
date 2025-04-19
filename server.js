@@ -275,6 +275,17 @@ app.get("/api/stats", async (req, res) => {
 app.get("/api/stats/summary", async (req, res) => {
   const { babyId, userId } = req.query;
 
+  const categoryLabels = {
+    family: "ครอบครัว",
+    animal: "สัตว์",
+    food: "อาหาร",
+    object: "สิ่งของ",
+    emotion: "อารมณ์",
+    action: "การกระทำ",
+    other: "อื่น ๆ",
+  };
+  
+
   if (!babyId || !userId) {
     return res.status(400).json({ message: "Missing babyId or userId" });
   }
@@ -348,11 +359,20 @@ app.get("/api/stats/summary", async (req, res) => {
     .sort((a, b) => b[1] - a[1])
     .map(([category, count]) => ({ category, count }));
 
-  const topCategory = sortedCategories[0]
-    ? `${sortedCategories[0].category} (${sortedCategories[0].count})`
-    : "-";
+  // const topCategory = sortedCategories[0]
+  //   ? `${sortedCategories[0].category} (${sortedCategories[0].count})`
+  //   : "-";
 
-  const topCategories = sortedCategories.slice(0, 3);
+  // const topCategories = sortedCategories.slice(0, 3);
+
+  const topCategory = sortedCategories[0]
+  ? `${categoryLabels[sortedCategories[0].category] || sortedCategories[0].category} (${sortedCategories[0].count})`
+  : "-";
+
+  const topCategories = sortedCategories.slice(0, 3).map(({ category, count }) => ({
+    category: categoryLabels[category] || category,
+    count,
+  }));
 
   res.json({
     today: todayCount,
