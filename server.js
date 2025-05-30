@@ -279,6 +279,8 @@ app.get("/api/stats/summary", async (req, res) => {
     family: "ครอบครัว",
     animal: "สัตว์",
     food: "อาหาร",
+    vehicle: "ยานพาหนะ",
+    body: "ร่างกาย",
     object: "สิ่งของ",
     emotion: "อารมณ์",
     action: "การกระทำ",
