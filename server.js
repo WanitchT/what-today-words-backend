@@ -280,6 +280,8 @@ app.get("/api/stats/summary", async (req, res) => {
     animal: "สัตว์",
     food: "อาหาร",
     vehicle: "ยานพาหนะ",
+    color: "สี",
+    personname: "ชื่อคน",
     body: "ร่างกาย",
     object: "สิ่งของ",
     emotion: "อารมณ์",
