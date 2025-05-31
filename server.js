@@ -127,9 +127,11 @@ app.get("/api/words/:babyId", async (req, res) => {
   const babyId = req.params.babyId;
   const userId = req.query.userId;
   const sortAsc = req.query.sortAsc === "true";
-  const limit = parseInt(req.query.limit) || 20;
+  const category = req.query.category;
+  const limit = parseInt(req.query.limit) || 10;
   const offset = parseInt(req.query.offset) || 0;
 
+  // Check baby ownership
   const { data: babyCheck } = await supabase
     .from("baby")
     .select("id")
@@ -140,26 +142,25 @@ app.get("/api/words/:babyId", async (req, res) => {
   if (!babyCheck)
     return res.status(403).json({ message: "Unauthorized access" });
 
-  // Get total count
-  const { count } = await supabase
+  // Build query
+  let query = supabase
     .from("words")
-    .select("id", { count: "exact", head: true })
+    .select("id, word, date, category", { count: "exact" })
     .eq("baby_id", babyId);
 
-  // Fetch paginated data
-  const { data, error } = await supabase
-    .from("words")
-    .select("id, word, date, category")
-    .eq("baby_id", babyId)
+  if (category && category !== "all") {
+    query = query.eq("category", category);
+  }
+
+  query = query
     .order("date", { ascending: sortAsc })
     .range(offset, offset + limit - 1);
 
+  const { data, count, error } = await query;
+
   if (error) return res.status(500).json({ error: error.message });
 
-  res.json({
-    words: data,
-    total: count || 0,
-  });
+  res.json({ words: data, total: count });
 });
 
 app.delete('/api/words/:id', async (req, res) => {
