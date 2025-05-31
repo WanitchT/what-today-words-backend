@@ -202,10 +202,15 @@ app.patch('/api/words/:id', async (req, res) => {
   const { category } = req.body;
   const userId = req.query.userId;
 
+  if (!userId) {
+    return res.status(400).json({ message: 'Missing userId' });
+  }
+
   try {
+    // Step 1: Get the word to find the baby_id
     const { data: word, error: fetchError } = await supabase
       .from('words')
-      .select('user_id')
+      .select('baby_id')
       .eq('id', wordId)
       .single();
 
@@ -213,10 +218,18 @@ app.patch('/api/words/:id', async (req, res) => {
       return res.status(404).json({ message: 'Word not found' });
     }
 
-    if (word.user_id !== userId) {
+    // Step 2: Check if that baby_id belongs to this user
+    const { data: baby, error: babyError } = await supabase
+      .from('baby')
+      .select('user_id')
+      .eq('id', word.baby_id)
+      .single();
+
+    if (babyError || !baby || baby.user_id !== userId) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    // Step 3: Update the word
     const { error: updateError } = await supabase
       .from('words')
       .update({ category })
